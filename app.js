@@ -1,11 +1,17 @@
 var express = require('express')
 var path = require('path')
 var mongoose = require('mongoose')
-var mongoStore = require('connect-mongo')(express)
+
+var logger = require('morgan')
+var bodyParser = require('body-parser')
+var cookieParser = require('cookie-parser')
+var session = require('express-session')
+var mongoStore = require('connect-mongo')(session)
+var serveStatic = require('serve-static')
 var port = process.env.PORT || 3000
 var app = express()
 var fs = require('fs')
-var dbUrl = 'mongodb://localhost/imooc'
+var dbUrl = 'mongodb://localhost:12345/bwfe'
 
 mongoose.connect(dbUrl)
 
@@ -31,10 +37,11 @@ var walk = function(path) {
 walk(models_path)
 app.set('views', './app/views/pages')
 app.set('view engine', 'jade')
-app.use(express.bodyParser())
-app.use(express.cookieParser())
-app.use(express.multipart())
-app.use(express.session({
+app.use(bodyParser.urlencoded({ extend: true }))
+app.use(bodyParser.json())
+
+app.use(cookieParser())
+app.use(session({
   secret: 'imooc',
   store: new mongoStore({
     url: dbUrl,
@@ -44,7 +51,7 @@ app.use(express.session({
 
 if ('development' === app.get('env')) {
   app.set('showStackError', true)
-  app.use(express.logger(':method :url :status'))
+  app.use(logger(':method :url :status'))
   app.locals.pretty = true
   //mongoose.set('debug', true)
 }
@@ -53,7 +60,7 @@ require('./config/routes')(app)
 
 app.listen(port)
 app.locals.moment = require('moment')
-app.use(express.static(path.join(__dirname, 'public')))
+app.use(serveStatic(path.join(__dirname, 'public')))
 
 console.log('imooc started on port ' + port)
 
